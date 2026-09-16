@@ -37,8 +37,50 @@ func newHTTPClient(addr string) *http.Client {
 	}
 }
 
+type loggingInterceptor struct{}
+
+func (loggingInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		method := req.Spec().Procedure
+		fmt.Fprintf(os.Stderr, "→ gRPC %s\n", method)
+		fmt.Fprintf(os.Stderr, "  REQ  %s\n", formatProto(req.Any()))
+		resp, err := next(ctx, req)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "  ERR  %v\n", err)
+		} else {
+			fmt.Fprintf(os.Stderr, "  RESP %s\n", formatProto(resp.Any()))
+		}
+		return resp, err
+	}
+}
+
+func (loggingInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return next
+}
+
+func (loggingInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return next
+}
+
+func formatProto(msg any) string {
+	if m, ok := msg.(interface{ String() string }); ok {
+		return m.String()
+	}
+	return fmt.Sprintf("%v", msg)
+}
+
 func main() {
-	if len(os.Args) < 2 {
+	verbose := false
+	args := os.Args[1:]
+	for i, a := range args {
+		if a == "-v" || a == "--verbose" {
+			verbose = true
+			args = append(args[:i], args[i+1:]...)
+			break
+		}
+	}
+
+	if len(args) < 1 {
 		usage()
 		os.Exit(1)
 	}
@@ -48,20 +90,25 @@ func main() {
 		addr = "http://localhost:50051"
 	}
 
+	opts := []connect.ClientOption{connect.WithGRPC()}
+	if verbose {
+		opts = append(opts, connect.WithInterceptors(loggingInterceptor{}))
+	}
+
 	client := doughnutv1connect.NewDoughnutServiceClient(
 		newHTTPClient(addr),
 		addr,
-		connect.WithGRPC(),
+		opts...,
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	switch os.Args[1] {
+	switch args[0] {
 	case "menu":
 		doMenu(ctx, client)
 	case "order":
-		doOrder(ctx, client, os.Args[2:])
+		doOrder(ctx, client, args[1:])
 	case "lucky":
 		doLucky(ctx, client)
 	default:
@@ -77,6 +124,9 @@ Commands:
   menu                         List available flavors
   order <name> <flavor:qty>... Place an order (e.g. order Homer "Glazed:3" "Maple Bacon:2")
   lucky                        Place a random order
+
+Flags:
+  -v, --verbose  Log gRPC requests and responses to stderr
 
 Environment:
   DOUGHNUT_ADDR  Backend address (default: http://localhost:50051)
