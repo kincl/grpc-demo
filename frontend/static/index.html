@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Hat Provisions — Handcrafted Doughnuts</title>
+<script src="https://cdn.jsdelivr.net/npm/protobufjs@7/dist/protobuf.min.js"></script>
+<style>
+  :root {
+    --red: #c21a1a;
+    --red-dark: #9a1515;
+    --cream: #fdf6ec;
+    --brown: #4a2c17;
+    --brown-light: #7a5c3e;
+    --tan: #f0e0c8;
+    --white: #ffffff;
+    --gray: #888;
+    --green: #2e7d32;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--cream);
+    color: var(--brown);
+    min-height: 100vh;
+  }
+  header {
+    background: var(--red);
+    color: var(--white);
+    text-align: center;
+    padding: 1.5rem 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  header h1 { font-size: 2.2rem; letter-spacing: 0.02em; }
+  header p { margin-top: 0.3rem; font-size: 1rem; opacity: 0.9; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1.5rem;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    margin: 1.2rem 0 0.8rem;
+    color: var(--red-dark);
+    border-bottom: 2px solid var(--tan);
+    padding-bottom: 0.3rem;
+  }
+  h2:first-child { margin-top: 0; }
+
+  .menu { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.8rem; }
+  .card {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .card h3 { font-size: 1.05rem; color: var(--brown); }
+  .card .desc { font-size: 0.82rem; color: var(--brown-light); flex: 1; }
+  .card .price { font-weight: 600; color: var(--red); font-size: 0.95rem; }
+  .qty-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+  }
+  .qty-btn {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--tan);
+    border-radius: 8px;
+    background: var(--white);
+    color: var(--brown);
+    font-size: 1.4rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    padding: 0;
+    line-height: 1;
+  }
+  .qty-btn:hover { background: var(--tan); border-color: var(--brown-light); }
+  .qty-btn:active { transform: scale(0.93); }
+  .qty-val {
+    width: 40px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--brown);
+  }
+
+  .order-form {
+    background: var(--white);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    align-items: flex-end;
+  }
+  .order-form .field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .order-form label { font-size: 0.82rem; font-weight: 600; }
+  .order-form input[type=text] {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--tan);
+    border-radius: 5px;
+    font-size: 0.95rem;
+    width: 200px;
+  }
+  .btn {
+    border: none;
+    padding: 0.5rem 1.2rem;
+    font-size: 0.95rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.15s;
+    color: var(--white);
+  }
+  .btn-primary { background: var(--red); }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-lucky { background: var(--brown); }
+  .btn-lucky:hover { background: var(--brown-light); }
+  .btn:disabled { background: var(--gray); cursor: not-allowed; }
+
+  .status {
+    margin-top: 0.8rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    display: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+  .status.success { display: block; background: #e8f5e9; color: var(--green); border: 1px solid #a5d6a7; }
+  .status.error { display: block; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+  .log-sidebar { position: sticky; top: 1.5rem; }
+  .log-panel {
+    background: var(--brown);
+    color: #e0e0e0;
+    border-radius: 10px;
+    padding: 0.8rem;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+    font-size: 0.72rem;
+    line-height: 1.6;
+  }
+  .log-entry {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer;
+  }
+  .log-entry:hover {
+    white-space: normal;
+    word-break: break-all;
+    background: rgba(255,255,255,0.05);
+  }
+  .log-time { color: #999; }
+  .log-dir { font-weight: 700; }
+  .log-dir.req { color: #ffb74d; }
+  .log-dir.resp { color: #81c784; }
+  .log-dir.err { color: #ef5350; }
+  .log-empty { color: var(--gray); font-style: italic; font-size: 0.8rem; }
+  .log-title {
+    font-size: 1.1rem;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-weight: 600;
+  }
+  .log-proto { font-size: 0.7rem; color: #aaa; margin-top: 0.3rem; }
+
+  .loading { text-align: center; padding: 2rem; color: var(--gray); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Red Hat Provisions</h1>
+  <p>Handcrafted Doughnuts Since 2024</p>
+</header>
+
+<div class="layout">
+  <div class="main-col">
+    <h2>Our Menu</h2>
+    <div class="menu" id="menu">
+      <div class="loading" id="menu-loading">Loading menu...</div>
+    </div>
+
+    <h2>Place an Order</h2>
+    <div class="order-form">
+      <div class="field">
+        <label for="customer">Your Name</label>
+        <input type="text" id="customer" placeholder="Enter your name">
+      </div>
+      <button class="btn btn-primary" id="order-btn" onclick="placeOrder()">Place Order</button>
+      <button class="btn btn-lucky" id="lucky-btn" onclick="feelingLucky()">I'm Feeling Lucky</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="log-sidebar">
+    <div class="log-panel" id="log">
+      <div class="log-title">gRPC-Web Log</div>
+      <div class="log-proto">Protocol: application/grpc-web via GRPCRoute</div>
+      <div class="log-empty">No gRPC calls yet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+let firstLog = true;
+
+const LUCKY_NAMES = [
+  'Homer Simpson', 'Bob Belcher', 'Leslie Knope', 'Ron Swanson',
+  'Jake Peralta', 'Dwight Schrute', 'Michael Scott', 'Liz Lemon',
+  'Philip Fry', 'Sterling Archer', 'Hank Hill', 'Peggy Hill',
+  'Ted Lasso', 'Elaine Benes', 'Cosmo Kramer'
+];
+
+let flavorsCache = [];
+let proto = null;
+
+// gRPC-Web endpoint: same origin in production (Gateway routes by content-type).
+// For local dev, set ?backend=http://localhost:50051 in the URL.
+const params = new URLSearchParams(window.location.search);
+const GRPC_BASE = params.get('backend') || '';
+
+// --- gRPC-Web transport layer ---
+
+function grpcWebEncode(msgBytes) {
+  const frame = new Uint8Array(5 + msgBytes.length);
+  frame[0] = 0;
+  new DataView(frame.buffer).setUint32(1, msgBytes.length, false);
+  frame.set(msgBytes, 5);
+  return frame;
+}
+
+function grpcWebDecode(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const frames = [];
+  let offset = 0;
+  while (offset + 5 <= bytes.length) {
+    const flag = bytes[offset];
+    const length = new DataView(bytes.buffer, bytes.byteOffset + offset).getUint32(1, false);
+    if (offset + 5 + length > bytes.length) break;
+    frames.push({ flag, data: bytes.slice(offset + 5, offset + 5 + length) });
+    offset += 5 + length;
+  }
+  return frames;
+}
+
+function parseTrailers(data) {
+  const text = new TextDecoder().decode(data);
+  const trailers = {};
+  text.split('\r\n').forEach(line => {
+    const idx = line.indexOf(':');
+    if (idx > 0) trailers[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+  });
+  return trailers;
+}
+
+async function grpcCall(method, reqType, respType, data) {
+  const payload = reqType.encode(reqType.create(data)).finish();
+  const body = grpcWebEncode(payload);
+
+  const url = GRPC_BASE + '/doughnut.v1.DoughnutService/' + method;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/grpc-web',
+      'Accept': 'application/grpc-web',
+      'X-Grpc-Web': '1',
+    },
+    body: body,
+  });
+
+  const buffer = await resp.arrayBuffer();
+  const frames = grpcWebDecode(buffer);
+
+  let trailers = {};
+  let messageFrame = null;
+  for (const f of frames) {
+    if (f.flag & 0x80) {
+      trailers = parseTrailers(f.data);
+    } else {
+      messageFrame = f;
+    }
+  }
+
+  const status = parseInt(trailers['grpc-status'] || '0', 10);
+  if (status !== 0) {
+    const msg = decodeURIComponent(trailers['grpc-message'] || 'gRPC error');
+    throw new Error(msg);
+  }
+
+  if (!messageFrame) throw new Error('No response data');
+  return respType.decode(messageFrame.data);
+}
+
+// --- UI helpers ---
+
+function addLog(direction, label, data) {
+  if (firstLog) {
+    logEl.innerHTML = '<div class="log-title">gRPC-Web Log</div><div class="log-proto">Protocol: application/grpc-web via GRPCRoute</div>';
+    firstLog = false;
+  }
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dirClass = direction === 'REQ' ? 'req' : direction === 'ERR' ? 'err' : 'resp';
+  const compact = JSON.stringify(data);
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML =
+    '<span class="log-time">' + time + '</span> ' +
+    '<span class="log-dir ' + dirClass + '">' + direction + '</span> ' +
+    escapeHtml(label) + ' ' +
+    escapeHtml(compact);
+  const firstEntry = logEl.querySelector('.log-entry');
+  if (firstEntry) {
+    firstEntry.before(entry);
+  } else {
+    logEl.appendChild(entry);
+  }
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showStatus(msg, ok) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status ' + (ok ? 'success' : 'error');
+}
+
+function clearStatus() {
+  statusEl.className = 'status';
+  statusEl.textContent = '';
+}
+
+function changeQty(btn, delta) {
+  const row = btn.closest('.qty-row');
+  const span = row.querySelector('.qty-val');
+  span.textContent = Math.max(0, parseInt(span.textContent, 10) + delta);
+}
+
+function setButtonsDisabled(disabled) {
+  document.getElementById('order-btn').disabled = disabled;
+  document.getElementById('lucky-btn').disabled = disabled;
+}
+
+function renderMenu(flavors) {
+  const menu = document.getElementById('menu');
+  menu.innerHTML = '';
+  flavors.forEach(f => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      '<h3>' + escapeHtml(f.name) + '</h3>' +
+      '<div class="desc">' + escapeHtml(f.description) + '</div>' +
+      '<div class="price">$' + f.price.toFixed(2) + '</div>' +
+      '<div class="qty-row">' +
+        '<button class="qty-btn" onclick="changeQty(this,-1)" aria-label="Decrease">&#8722;</button>' +
+        '<span class="qty-val" data-flavor="' + escapeHtml(f.name) + '">0</span>' +
+        '<button class="qty-btn" onclick="changeQty(this,1)" aria-label="Increase">+</button>' +
+      '</div>';
+    menu.appendChild(card);
+  });
+}
+
+// --- gRPC-Web API calls ---
+
+async function loadFlavors() {
+  addLog('REQ', 'ListFlavors', {});
+  try {
+    const resp = await grpcCall('ListFlavors', proto.ListFlavorsRequest, proto.ListFlavorsResponse, {});
+    const flavors = resp.flavors.map(f => ({ name: f.name, price: f.price, description: f.description }));
+    addLog('RESP', 'ListFlavors', { count: flavors.length });
+    flavorsCache = flavors;
+    renderMenu(flavors);
+  } catch (e) {
+    addLog('ERR', 'ListFlavors', { error: e.message });
+    document.getElementById('menu').innerHTML = '<div class="loading" style="color:#c62828">Failed to load menu: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+async function submitOrder(name, items) {
+  const reqData = {
+    customerName: name,
+    items: items.map(i => ({ flavor: i.flavor, quantity: i.quantity })),
+  };
+  addLog('REQ', 'OrderDoughnuts', { customer: name, items });
+  setButtonsDisabled(true);
+
+  try {
+    const resp = await grpcCall('OrderDoughnuts', proto.OrderRequest, proto.OrderResponse, reqData);
+    addLog('RESP', 'OrderDoughnuts', { orderId: resp.orderId, total: '$' + resp.totalPrice.toFixed(2) });
+    showStatus('Order ' + resp.orderId + ' confirmed! ' + resp.message, true);
+    document.querySelectorAll('.qty-val').forEach(s => s.textContent = '0');
+  } catch (e) {
+    addLog('ERR', 'OrderDoughnuts', { error: e.message });
+    showStatus('Order failed: ' + e.message, false);
+  } finally {
+    setButtonsDisabled(false);
+  }
+}
+
+async function placeOrder() {
+  clearStatus();
+  const name = document.getElementById('customer').value.trim();
+  if (!name) { showStatus('Please enter your name.', false); return; }
+
+  const spans = document.querySelectorAll('.qty-val');
+  const items = [];
+  spans.forEach(s => {
+    const qty = parseInt(s.textContent, 10);
+    if (qty > 0) items.push({ flavor: s.dataset.flavor, quantity: qty });
+  });
+  if (items.length === 0) { showStatus('Please select at least one doughnut.', false); return; }
+
+  await submitOrder(name, items);
+}
+
+async function feelingLucky() {
+  clearStatus();
+  const name = LUCKY_NAMES[Math.floor(Math.random() * LUCKY_NAMES.length)];
+  document.getElementById('customer').value = name;
+
+  if (flavorsCache.length === 0) {
+    showStatus('Menu not loaded yet, try again.', false);
+    return;
+  }
+
+  const spans = document.querySelectorAll('.qty-val');
+  spans.forEach(s => s.textContent = '0');
+
+  const count = 1 + Math.floor(Math.random() * 3);
+  const indices = [];
+  while (indices.length < count && indices.length < flavorsCache.length) {
+    const i = Math.floor(Math.random() * flavorsCache.length);
+    if (!indices.includes(i)) indices.push(i);
+  }
+
+  const items = [];
+  indices.forEach(i => {
+    const qty = 1 + Math.floor(Math.random() * 6);
+    spans[i].textContent = qty;
+    items.push({ flavor: flavorsCache[i].name, quantity: qty });
+  });
+
+  await submitOrder(name, items);
+}
+
+// --- Init: load proto definition then fetch menu ---
+
+protobuf.load('doughnut.proto').then(root => {
+  proto = {
+    ListFlavorsRequest: root.lookupType('doughnut.v1.ListFlavorsRequest'),
+    ListFlavorsResponse: root.lookupType('doughnut.v1.ListFlavorsResponse'),
+    OrderRequest: root.lookupType('doughnut.v1.OrderRequest'),
+    OrderResponse: root.lookupType('doughnut.v1.OrderResponse'),
+  };
+  loadFlavors();
+}).catch(err => {
+  document.getElementById('menu').innerHTML =
+    '<div class="loading" style="color:#c62828">Failed to load proto: ' + escapeHtml(err.message) + '</div>';
+});
+</script>
+</body>
+</html>

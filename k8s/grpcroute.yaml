@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: doughnut-grpcroute
+  namespace: red-hat-provisions
+spec:
+  parentRefs:
+    - name: doughnut-gateway
+      sectionName: http
+  rules:
+    - matches:
+        - method:
+            service: doughnut.v1.DoughnutService
+            method: ListFlavors
+        - method:
+            service: doughnut.v1.DoughnutService
+            method: OrderDoughnuts
+      backendRefs:
+        - name: doughnut-backend
+          port: 50051

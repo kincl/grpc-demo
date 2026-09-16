@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doughnut-frontend
+  namespace: red-hat-provisions
+  labels:
+    app: doughnut-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doughnut-frontend
+  template:
+    metadata:
+      labels:
+        app: doughnut-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/jkincl/grpc-demo/doughnut-frontend:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doughnut-frontend
+  namespace: red-hat-provisions
+spec:
+  selector:
+    app: doughnut-frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

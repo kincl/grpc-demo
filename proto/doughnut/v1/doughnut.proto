@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package doughnut.v1;
+
+option go_package = "github.com/jkincl/grpc-demo/gen/doughnut/v1;doughnutv1";
+
+service DoughnutService {
+  rpc ListFlavors(ListFlavorsRequest) returns (ListFlavorsResponse);
+  rpc OrderDoughnuts(OrderRequest) returns (OrderResponse);
+}
+
+message ListFlavorsRequest {}
+
+message ListFlavorsResponse {
+  repeated Flavor flavors = 1;
+}
+
+message Flavor {
+  string name = 1;
+  double price = 2;
+  string description = 3;
+}
+
+message OrderRequest {
+  string customer_name = 1;
+  repeated OrderItem items = 2;
+}
+
+message OrderItem {
+  string flavor = 1;
+  int32 quantity = 2;
+}
+
+message OrderResponse {
+  string order_id = 1;
+  string status = 2;
+  double total_price = 3;
+  string message = 4;
+  repeated OrderItem items = 5;
+}
