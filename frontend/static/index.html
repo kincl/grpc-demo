@@ -241,10 +241,12 @@ const LUCKY_NAMES = [
 let flavorsCache = [];
 let proto = null;
 
-// gRPC-Web endpoint: same origin in production (Gateway routes by content-type).
-// For local dev, set ?backend=http://localhost:50051 in the URL.
+// gRPC-Web endpoint: set ?backend= to override.
+// In production, defaults to api-<current-hostname> (separate hostname for GRPCRoute).
+// For local dev: ?backend=http://localhost:50051
 const params = new URLSearchParams(window.location.search);
-const GRPC_BASE = params.get('backend') || '';
+const GRPC_BASE = params.get('backend') ||
+  window.location.origin.replace(/\/\/([^.]+)\./, '//api-$1.');
 
 // --- gRPC-Web transport layer ---
 

@@ -5,8 +5,10 @@ metadata:
   namespace: red-hat-provisions
 spec:
   parentRefs:
-    - name: doughnut-gateway
-      sectionName: http
+    - name: example-gateway
+      namespace: openshift-ingress
+  hostnames:
+    - api-doughnuts.gwapi.ocp.5g95v.sandbox5624.opentlc.com
   rules:
     - matches:
         - method:
