@@ -1,6 +1,6 @@
 module github.com/jkincl/grpc-demo
 
-go 1.26.2
+go 1.26.0
 
 require (
 	connectrpc.com/connect v1.21.0
