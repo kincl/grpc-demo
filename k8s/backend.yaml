@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/jkincl/grpc-demo/doughnut-backend:latest
+          image: ghcr.io/kincl/grpc-demo/doughnut-backend:latest
           ports:
             - containerPort: 50051
               name: grpc

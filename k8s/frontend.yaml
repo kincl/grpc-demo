@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/jkincl/grpc-demo/doughnut-frontend:latest
+          image: ghcr.io/kincl/grpc-demo/doughnut-frontend:latest
           ports:
             - containerPort: 8080
               name: http
