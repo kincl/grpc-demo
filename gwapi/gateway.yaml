@@ -1,0 +1,37 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: example-gateway
+  namespace: openshift-ingress
+spec:
+  gatewayClassName: openshift-default
+  listeners:
+  - name: https
+    hostname: "*.gwapi.ocp.5g95v.sandbox5624.opentlc.com"
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: gwapi-wildcard
+    allowedRoutes:
+      namespaces:
+        from: Selector
+        selector:
+          matchLabels:
+            shared-gateway-access: "true"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: example-gateway-certificate
+  namespace: openshift-ingress
+spec:
+  issuerRef:
+    name: zerossl-production-aws
+    kind: ClusterIssuer
+  secretName: gwapi-wildcard
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  dnsNames:
+    - "*.gwapi.ocp.5g95v.sandbox5624.opentlc.com"
